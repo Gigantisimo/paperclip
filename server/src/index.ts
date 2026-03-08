@@ -1,6 +1,7 @@
 /// <reference path="./types/express.d.ts" />
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
+import { Socket } from "node:net";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
@@ -221,6 +222,11 @@ async function ensureLocalTrustedBoardPrincipal(db: any): Promise<void> {
 let db;
 let embeddedPostgres: EmbeddedPostgresInstance | null = null;
 let embeddedPostgresStartedByThisProcess = false;
+let embeddedPostgresDataDir: string | null = null;
+let embeddedPostgresPort: number | null = null;
+let embeddedPostgresRestartInFlight: Promise<void> | null = null;
+let embeddedPostgresWatchdog: NodeJS.Timeout | null = null;
+let embeddedPostgresShutdownRequested = false;
 let migrationSummary: MigrationSummary = "skipped";
 let activeDatabaseConnectionString: string;
 let startupDbInfo:
@@ -307,9 +313,92 @@ if (config.databaseUrl) {
     }
   };
 
+  const removeEmbeddedPostgresLockFile = (reason: string) => {
+    if (!existsSync(postmasterPidFile)) return;
+    logger.warn({ reason, postmasterPidFile }, "Removing embedded PostgreSQL lock file");
+    rmSync(postmasterPidFile, { force: true });
+  };
+
+  const isEmbeddedPostgresReachable = async (host: string, targetPort: number): Promise<boolean> =>
+    new Promise((resolveReachability) => {
+      const socket = new Socket();
+      let settled = false;
+      const settle = (reachable: boolean) => {
+        if (settled) return;
+        settled = true;
+        socket.destroy();
+        resolveReachability(reachable);
+      };
+
+      socket.setTimeout(1000);
+      socket.once("connect", () => settle(true));
+      socket.once("timeout", () => settle(false));
+      socket.once("error", () => settle(false));
+      socket.connect(targetPort, host);
+    });
+
+  const restartEmbeddedPostgres = async (reason: string) => {
+    if (!embeddedPostgres || embeddedPostgresPort === null || embeddedPostgresDataDir === null) return;
+    if (embeddedPostgresShutdownRequested) return;
+    if (embeddedPostgresRestartInFlight) return embeddedPostgresRestartInFlight;
+
+    embeddedPostgresRestartInFlight = (async () => {
+      const reachable = await isEmbeddedPostgresReachable("127.0.0.1", embeddedPostgresPort!);
+      if (reachable) return;
+
+      logger.warn(
+        {
+          reason,
+          dataDir: embeddedPostgresDataDir,
+          port: embeddedPostgresPort,
+          startedByThisProcess: embeddedPostgresStartedByThisProcess,
+        },
+        "Embedded PostgreSQL is unreachable; attempting restart",
+      );
+
+      for (let attempt = 1; attempt <= 5; attempt += 1) {
+        try {
+          removeEmbeddedPostgresLockFile(`restart-attempt-${attempt}`);
+          await embeddedPostgres.start();
+          logger.info(
+            { attempt, dataDir: embeddedPostgresDataDir, port: embeddedPostgresPort },
+            "Embedded PostgreSQL restart succeeded",
+          );
+          embeddedPostgresStartedByThisProcess = true;
+          return;
+        } catch (err) {
+          logger.warn(
+            { err, attempt, dataDir: embeddedPostgresDataDir, port: embeddedPostgresPort },
+            "Embedded PostgreSQL restart attempt failed",
+          );
+          await new Promise((resolveDelay) => setTimeout(resolveDelay, 1000));
+        }
+      }
+
+      logger.error(
+        { dataDir: embeddedPostgresDataDir, port: embeddedPostgresPort, reason },
+        "Embedded PostgreSQL remained unavailable after restart attempts",
+      );
+    })().finally(() => {
+      embeddedPostgresRestartInFlight = null;
+    });
+
+    return embeddedPostgresRestartInFlight;
+  };
+
   const runningPid = getRunningPid();
+  embeddedPostgresDataDir = dataDir;
   if (runningPid) {
     logger.warn(`Embedded PostgreSQL already running; reusing existing process (pid=${runningPid}, port=${port})`);
+    embeddedPostgres = new EmbeddedPostgres({
+      databaseDir: dataDir,
+      user: "paperclip",
+      password: "paperclip",
+      port,
+      persistent: true,
+      onLog: appendEmbeddedPostgresLog,
+      onError: appendEmbeddedPostgresLog,
+    });
   } else {
     const detectedPort = await detectPort(configuredPort);
     if (detectedPort !== configuredPort) {
@@ -350,6 +439,7 @@ if (config.databaseUrl) {
     }
     embeddedPostgresStartedByThisProcess = true;
   }
+  embeddedPostgresPort = port;
 
   const embeddedAdminConnectionString = `postgres://paperclip:paperclip@127.0.0.1:${port}/postgres`;
   const dbStatus = await ensurePostgresDatabase(embeddedAdminConnectionString, "paperclip");
@@ -370,6 +460,10 @@ if (config.databaseUrl) {
   logger.info("Embedded PostgreSQL ready");
   activeDatabaseConnectionString = embeddedConnectionString;
   startupDbInfo = { mode: "embedded-postgres", dataDir, port };
+
+  embeddedPostgresWatchdog = setInterval(() => {
+    void restartEmbeddedPostgres("watchdog");
+  }, 5000);
 }
 
 if (config.deploymentMode === "local_trusted" && !isLoopbackHost(config.host)) {
@@ -610,8 +704,18 @@ server.listen(listenPort, config.host, () => {
   }
 });
 
-if (embeddedPostgres && embeddedPostgresStartedByThisProcess) {
+if (embeddedPostgres) {
   const shutdown = async (signal: "SIGINT" | "SIGTERM") => {
+    embeddedPostgresShutdownRequested = true;
+    if (embeddedPostgresWatchdog) {
+      clearInterval(embeddedPostgresWatchdog);
+      embeddedPostgresWatchdog = null;
+    }
+    if (!embeddedPostgresStartedByThisProcess) {
+      logger.info({ signal }, "Skipping embedded PostgreSQL shutdown because this process does not own it");
+      process.exit(0);
+      return;
+    }
     logger.info({ signal }, "Stopping embedded PostgreSQL");
     try {
       await embeddedPostgres?.stop();
