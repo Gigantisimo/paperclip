@@ -18,6 +18,12 @@ import {
 } from "@paperclipai/adapter-cursor-local/server";
 import { agentConfigurationDoc as cursorAgentConfigurationDoc, models as cursorModels } from "@paperclipai/adapter-cursor-local";
 import {
+  execute as qwenExecute,
+  testEnvironment as qwenTestEnvironment,
+  sessionCodec as qwenSessionCodec,
+} from "@paperclipai/adapter-qwen-local/server";
+import { agentConfigurationDoc as qwenAgentConfigurationDoc, models as qwenModels } from "@paperclipai/adapter-qwen-local";
+import {
   execute as openCodeExecute,
   testEnvironment as openCodeTestEnvironment,
   sessionCodec as openCodeSessionCodec,
@@ -80,6 +86,16 @@ const cursorLocalAdapter: ServerAdapterModule = {
   agentConfigurationDoc: cursorAgentConfigurationDoc,
 };
 
+const qwenLocalAdapter: ServerAdapterModule = {
+  type: "qwen_local",
+  execute: qwenExecute,
+  testEnvironment: qwenTestEnvironment,
+  sessionCodec: qwenSessionCodec,
+  models: qwenModels,
+  supportsLocalAgentJwt: true,
+  agentConfigurationDoc: qwenAgentConfigurationDoc,
+};
+
 const openclawGatewayAdapter: ServerAdapterModule = {
   type: "openclaw_gateway",
   execute: openclawGatewayExecute,
@@ -118,6 +134,7 @@ const adaptersByType = new Map<string, ServerAdapterModule>(
     openCodeLocalAdapter,
     piLocalAdapter,
     cursorLocalAdapter,
+    qwenLocalAdapter,
     openclawGatewayAdapter,
     processAdapter,
     httpAdapter,
