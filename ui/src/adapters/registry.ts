@@ -5,6 +5,7 @@ import { cursorLocalUIAdapter } from "./cursor";
 import { openCodeLocalUIAdapter } from "./opencode-local";
 import { piLocalUIAdapter } from "./pi-local";
 import { qwenLocalUIAdapter } from "./qwen-local";
+import { openRouterHttpUIAdapter } from "./openrouter-http";
 import { openClawGatewayUIAdapter } from "./openclaw-gateway";
 import { processUIAdapter } from "./process";
 import { httpUIAdapter } from "./http";
@@ -16,6 +17,7 @@ const adaptersByType = new Map<string, UIAdapterModule>(
     openCodeLocalUIAdapter,
     piLocalUIAdapter,
     qwenLocalUIAdapter,
+    openRouterHttpUIAdapter,
     cursorLocalUIAdapter,
     openClawGatewayUIAdapter,
     processUIAdapter,

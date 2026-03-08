@@ -53,6 +53,7 @@ type AdapterType =
   | "codex_local"
   | "opencode_local"
   | "qwen_local"
+  | "openrouter_http"
   | "pi_local"
   | "cursor"
   | "process"
@@ -677,6 +678,12 @@ export function OnboardingWizard() {
                           label: "Qwen",
                           icon: Terminal,
                           desc: "Local Qwen agent"
+                        },
+                        {
+                          value: "openrouter_http" as const,
+                          label: "OpenRouter",
+                          icon: Bot,
+                          desc: "Remote OpenRouter worker"
                         },
                         {
                           value: "pi_local" as const,

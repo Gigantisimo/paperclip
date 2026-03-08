@@ -30,6 +30,7 @@ export const AGENT_ADAPTER_TYPES = [
   "pi_local",
   "cursor",
   "qwen_local",
+  "openrouter_http",
   "openclaw_gateway",
 ] as const;
 export type AgentAdapterType = (typeof AGENT_ADAPTER_TYPES)[number];

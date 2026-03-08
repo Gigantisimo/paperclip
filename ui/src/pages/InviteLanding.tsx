@@ -17,13 +17,14 @@ const adapterLabels: Record<string, string> = {
   codex_local: "Codex (local)",
   opencode_local: "OpenCode (local)",
   qwen_local: "Qwen (local)",
+  openrouter_http: "OpenRouter (HTTP)",
   openclaw_gateway: "OpenClaw Gateway",
   cursor: "Cursor (local)",
   process: "Process",
   http: "HTTP",
 };
 
-const ENABLED_INVITE_ADAPTERS = new Set(["claude_local", "codex_local", "opencode_local", "qwen_local", "cursor"]);
+const ENABLED_INVITE_ADAPTERS = new Set(["claude_local", "codex_local", "opencode_local", "qwen_local", "openrouter_http", "cursor"]);
 
 function dateTime(value: string) {
   return new Date(value).toLocaleString();

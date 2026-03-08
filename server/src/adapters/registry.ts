@@ -51,6 +51,14 @@ import {
 import {
   agentConfigurationDoc as piAgentConfigurationDoc,
 } from "@paperclipai/adapter-pi-local";
+import {
+  execute as openRouterHttpExecute,
+  testEnvironment as openRouterHttpTestEnvironment,
+} from "@paperclipai/adapter-openrouter-http/server";
+import {
+  agentConfigurationDoc as openRouterHttpAgentConfigurationDoc,
+  models as openRouterHttpModels,
+} from "@paperclipai/adapter-openrouter-http";
 import { processAdapter } from "./process/index.js";
 import { httpAdapter } from "./http/index.js";
 
@@ -127,6 +135,15 @@ const piLocalAdapter: ServerAdapterModule = {
   agentConfigurationDoc: piAgentConfigurationDoc,
 };
 
+const openRouterHttpAdapter: ServerAdapterModule = {
+  type: "openrouter_http",
+  execute: openRouterHttpExecute,
+  testEnvironment: openRouterHttpTestEnvironment,
+  models: openRouterHttpModels,
+  supportsLocalAgentJwt: false,
+  agentConfigurationDoc: openRouterHttpAgentConfigurationDoc,
+};
+
 const adaptersByType = new Map<string, ServerAdapterModule>(
   [
     claudeLocalAdapter,
@@ -135,6 +152,7 @@ const adaptersByType = new Map<string, ServerAdapterModule>(
     piLocalAdapter,
     cursorLocalAdapter,
     qwenLocalAdapter,
+    openRouterHttpAdapter,
     openclawGatewayAdapter,
     processAdapter,
     httpAdapter,

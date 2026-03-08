@@ -25,6 +25,7 @@ const adapterLabels: Record<string, string> = {
   codex_local: "Codex",
   opencode_local: "OpenCode",
   qwen_local: "Qwen",
+  openrouter_http: "OpenRouter",
   cursor: "Cursor",
   openclaw_gateway: "OpenClaw Gateway",
   process: "Process",

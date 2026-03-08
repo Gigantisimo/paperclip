@@ -45,6 +45,7 @@ export function agentRoutes(db: Db) {
     codex_local: "instructionsFilePath",
     opencode_local: "instructionsFilePath",
     qwen_local: "instructionsFilePath",
+    openrouter_http: "instructionsFilePath",
     cursor: "instructionsFilePath",
   };
   const KNOWN_INSTRUCTIONS_PATH_KEYS = new Set(["instructionsFilePath", "agentsMdPath"]);
@@ -230,6 +231,21 @@ export function agentRoutes(db: Db) {
         typeof next.dangerouslyBypassSandbox === "boolean";
       if (!hasBypassFlag) {
         next.dangerouslyBypassApprovalsAndSandbox = DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX;
+      }
+      return ensureGatewayDeviceKey(adapterType, next);
+    }
+    if (adapterType === "openrouter_http") {
+      if (!asNonEmptyString(next.model)) {
+        next.model = "qwen/qwen3-coder:free";
+      }
+      if (!asNonEmptyString(next.url)) {
+        next.url = "https://openrouter.ai/api/v1/chat/completions";
+      }
+      if (typeof next.timeoutSec !== "number") {
+        next.timeoutSec = 120;
+      }
+      if (typeof next.graceSec !== "number") {
+        next.graceSec = 15;
       }
       return ensureGatewayDeviceKey(adapterType, next);
     }

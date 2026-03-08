@@ -78,6 +78,11 @@ const ADAPTER_DEFAULT_RULES_BY_TYPE: Record<string, Array<{ path: string[]; valu
     { path: ["timeoutSec"], value: 0 },
     { path: ["graceSec"], value: 15 },
   ],
+  openrouter_http: [
+    { path: ["timeoutSec"], value: 120 },
+    { path: ["graceSec"], value: 15 },
+    { path: ["url"], value: "https://openrouter.ai/api/v1/chat/completions" },
+  ],
   claude_local: [
     { path: ["timeoutSec"], value: 0 },
     { path: ["graceSec"], value: 15 },

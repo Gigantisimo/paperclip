@@ -26,6 +26,7 @@ type AdvancedAdapterType =
   | "codex_local"
   | "opencode_local"
   | "qwen_local"
+  | "openrouter_http"
   | "pi_local"
   | "cursor"
   | "openclaw_gateway";
@@ -62,6 +63,12 @@ const ADVANCED_ADAPTER_OPTIONS: Array<{
     label: "Qwen",
     icon: Terminal,
     desc: "Local Qwen agent",
+  },
+  {
+    value: "openrouter_http",
+    label: "OpenRouter",
+    icon: Bot,
+    desc: "Remote OpenRouter worker",
   },
   {
     value: "pi_local",

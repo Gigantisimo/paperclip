@@ -30,6 +30,7 @@ const SUPPORTED_ADVANCED_ADAPTER_TYPES = new Set<CreateConfigValues["adapterType
   "codex_local",
   "opencode_local",
   "qwen_local",
+  "openrouter_http",
   "pi_local",
   "cursor",
   "openclaw_gateway",
